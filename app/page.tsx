@@ -673,7 +673,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={handleAddExercise}
-                    className="hidden items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 sm:inline-flex"
+                    className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50"
                   >
                     添加到本次训练
                   </button>
