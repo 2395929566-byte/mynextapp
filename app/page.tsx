@@ -2,13 +2,15 @@
 
 import { useMemo, useState } from "react";
 
-type ExerciseId = "bench_press" | "squat" | "pull_up" | "deadlift";
+type TrainingGroup = "back" | "shoulders" | "glutes_legs";
+type ExerciseId = string;
 
 type Exercise = {
   id: ExerciseId;
   name: string;
   muscles: string[];
   description: string;
+  group: TrainingGroup;
 };
 
 const EXERCISES: Exercise[] = [
@@ -17,24 +19,205 @@ const EXERCISES: Exercise[] = [
     name: "卧推 Bench Press",
     muscles: ["胸大肌", "前三角肌", "肱三头肌"],
     description: "经典上肢推举动作，主要刺激胸大肌，同时激活肩部与肱三头肌。",
+    group: "shoulders",
   },
   {
-    id: "squat",
-    name: "深蹲 Squat",
-    muscles: ["股四头肌", "臀大肌", "腘绳肌", "核心肌群"],
-    description: "下肢基础动作王，提升下肢力量与稳定性，对全身代谢负荷极高。",
+    id: "back_lat_pulldown",
+    name: "高位下拉 Lat Pulldown",
+    muscles: ["背阔肌", "大圆肌", "肱二头肌"],
+    description: "经典背部宽度动作，模拟引体向上路径，更友好地激活背阔肌。",
+    group: "back",
   },
   {
-    id: "pull_up",
+    id: "back_neutral_lat_pulldown",
+    name: "对握下拉 Neutral Grip Pulldown",
+    muscles: ["背阔肌", "菱形肌", "肱二头肌"],
+    description: "中立握姿势减轻手腕压力，更集中在背阔肌与上背部。",
+    group: "back",
+  },
+  {
+    id: "back_supinated_lat_pulldown",
+    name: "反手下拉 Supinated Pulldown",
+    muscles: ["背阔肌", "肱二头肌"],
+    description: "反手握强调下束背阔肌，同时显著参与肱二头肌发力。",
+    group: "back",
+  },
+  {
+    id: "back_close_cable_row",
+    name: "窄距坐姿划船 Close Grip Row",
+    muscles: ["菱形肌", "斜方肌中部", "背阔肌"],
+    description: "注重背部厚度，帮助塑造立体的上背轮廓。",
+    group: "back",
+  },
+  {
+    id: "back_wide_cable_row",
+    name: "宽距坐姿划船 Wide Grip Row",
+    muscles: ["背阔肌", "后三角肌", "菱形肌"],
+    description: "更强调整体背部展开感，兼顾宽度与厚度。",
+    group: "back",
+  },
+  {
+    id: "back_bent_over_row",
+    name: "俯身划船 Bent-over Row",
+    muscles: ["背阔肌", "竖脊肌", "斜方肌"],
+    description: "自由重量背部基础动作，对核心与腰背稳定性要求较高。",
+    group: "back",
+  },
+  {
+    id: "back_one_arm_row",
+    name: "单臂划船 One-arm Row",
+    muscles: ["背阔肌", "菱形肌", "后三角肌"],
+    description: "单侧训练有助于纠正左右不平衡，并增强背部感知度。",
+    group: "back",
+  },
+  {
+    id: "back_straight_arm_pushdown",
+    name: "直臂下压 Straight-arm Pulldown",
+    muscles: ["背阔肌", "大圆肌"],
+    description: "孤立背阔肌的拉伸与收缩，常作为背部辅助或收尾动作。",
+    group: "back",
+  },
+  {
+    id: "back_pull_up",
     name: "引体向上 Pull-up",
     muscles: ["背阔肌", "菱形肌", "肱二头肌", "前臂"],
     description: "自身体重上拉动作，强化背部厚度与宽度，同时提升握力。",
+    group: "back",
+  },
+  // 肩部
+  {
+    id: "shoulder_reverse_fly",
+    name: "俯身飞鸟 Reverse Fly",
+    muscles: ["后三角肌", "菱形肌"],
+    description: "突出后三角与上背，有助于改善含胸与圆肩。",
+    group: "shoulders",
   },
   {
-    id: "deadlift",
-    name: "硬拉 Deadlift",
-    muscles: ["臀大肌", "腘绳肌", "竖脊肌", "斜方肌"],
-    description: "后链综合力量动作，几乎调动全身大肌群，对力量提升效果显著。",
+    id: "shoulder_pec_deck_reverse",
+    name: "蝴蝶机飞鸟 Rear Delt Fly",
+    muscles: ["后三角肌", "中下斜方肌"],
+    description: "器械引导轨迹，降低代偿，更精准刺激后三角。",
+    group: "shoulders",
+  },
+  {
+    id: "shoulder_face_pull",
+    name: "绳索面拉 Face Pull",
+    muscles: ["后三角肌", "菱形肌", "旋转袖"],
+    description: "对肩关节健康非常友好，改善圆肩和上背稳定性。",
+    group: "shoulders",
+  },
+  {
+    id: "shoulder_lateral_raise",
+    name: "侧平举飞鸟 Lateral Raise",
+    muscles: ["中束三角肌"],
+    description: "打造肩部“圆润感”的核心动作，提升肩宽视觉效果。",
+    group: "shoulders",
+  },
+  {
+    id: "shoulder_overhead_press",
+    name: "推肩 Overhead Press",
+    muscles: ["前三角肌", "中束三角肌", "肱三头肌"],
+    description: "自由重量推举，全面提升肩带与上肢推举力量。",
+    group: "shoulders",
+  },
+  {
+    id: "shoulder_scott_press",
+    name: "斯科特推举 Scott Press",
+    muscles: ["三角肌全束"],
+    description: "特别强调肩部峰值收缩的高级变式，控制感要求较高。",
+    group: "shoulders",
+  },
+  // 臀腿
+  {
+    id: "glute_abduction_lean_back",
+    name: "后仰位髋外展 Seated Abduction (Lean Back)",
+    muscles: ["臀中肌", "臀小肌"],
+    description: "身体后仰增加臀中肌参与，对侧臀线与稳定性有帮助。",
+    group: "glutes_legs",
+  },
+  {
+    id: "glute_abduction_neutral",
+    name: "中立髋外展 Neutral Abduction",
+    muscles: ["臀中肌", "臀小肌"],
+    description: "更偏向标准轨迹的髋外展，适合作为臀部激活或主练动作。",
+    group: "glutes_legs",
+  },
+  {
+    id: "glute_abduction_lean_forward",
+    name: "俯身髋外展 Lean Forward Abduction",
+    muscles: ["臀小肌", "臀中肌"],
+    description: "身体前倾改变受力角度，更集中于上外侧臀部。",
+    group: "glutes_legs",
+  },
+  {
+    id: "glute_adduction",
+    name: "髋内收 Adduction",
+    muscles: ["大收肌", "长收肌"],
+    description: "训练大腿内侧肌群，辅助骨盆稳定与下肢控制力。",
+    group: "glutes_legs",
+  },
+  {
+    id: "glute_rdl",
+    name: "罗马尼亚硬拉 Romanian Deadlift",
+    muscles: ["臀大肌", "腘绳肌", "竖脊肌"],
+    description: "强调髋铰链与后链拉伸，对臀腿后侧线条非常友好。",
+    group: "glutes_legs",
+  },
+  {
+    id: "glute_single_leg_rdl",
+    name: "单腿硬拉 Single-leg RDL",
+    muscles: ["臀大肌", "臀中肌", "腘绳肌"],
+    description: "单侧稳定性挑战更高，改善平衡与臀部激活度。",
+    group: "glutes_legs",
+  },
+  {
+    id: "glute_bulgarian_split_squat",
+    name: "保加利亚蹲 Bulgarian Split Squat",
+    muscles: ["臀大肌", "股四头肌", "腘绳肌"],
+    description: "极具挑战性的单侧腿部动作，提高臀腿力量与稳定性。",
+    group: "glutes_legs",
+  },
+  {
+    id: "glute_squat",
+    name: "深蹲 Squat",
+    muscles: ["股四头肌", "臀大肌", "腘绳肌", "核心肌群"],
+    description: "下肢基础动作王，提升下肢力量与稳定性，对全身代谢负荷极高。",
+    group: "glutes_legs",
+  },
+  {
+    id: "glute_stiff_leg_deadlift",
+    name: "直腿硬拉 Stiff-leg Deadlift",
+    muscles: ["腘绳肌", "臀大肌", "竖脊肌"],
+    description: "在更大程度下放的同时保持腿部相对伸直，强调后侧链条。",
+    group: "glutes_legs",
+  },
+  {
+    id: "glute_t_bar_deadlift",
+    name: "T 杆硬拉 T-bar Deadlift",
+    muscles: ["臀大肌", "腘绳肌", "竖脊肌"],
+    description: "借助 T 杆路径，更容易控制重心，兼顾安全与刺激强度。",
+    group: "glutes_legs",
+  },
+  {
+    id: "glute_hip_thrust",
+    name: "臀推 Hip Thrust",
+    muscles: ["臀大肌", "臀中肌"],
+    description: "孤立臀大肌发力的旗舰动作，显著提升臀部力量与围度。",
+    group: "glutes_legs",
+  },
+  {
+    id: "glute_cable_kickback",
+    name: "绳索后提 Cable Kickback",
+    muscles: ["臀大肌", "臀中肌"],
+    description: "持续张力下的臀部孤立动作，适合作为收尾或激活。",
+    group: "glutes_legs",
+  },
+  {
+    id: "glute_cable_side_kick",
+    name: "绳索侧踢 Cable Side Kick",
+    muscles: ["臀中肌", "臀小肌"],
+    description: "偏向侧臀与稳定肌，对塑造臀部外侧线条有帮助。",
+    group: "glutes_legs",
   },
 ];
 
@@ -44,6 +227,7 @@ type TrainingEntry = {
   sets: number;
   reps: number;
   createdAt: number;
+  group: TrainingGroup;
 };
 
 function StatCard({ label, value }: { label: string; value: number }) {
@@ -78,8 +262,10 @@ function countByRange(entries: TrainingEntry[], days: number) {
 }
 
 export default function Home() {
+  const [selectedGroup, setSelectedGroup] =
+    useState<TrainingGroup>("back");
   const [selectedExerciseId, setSelectedExerciseId] =
-    useState<ExerciseId>("bench_press");
+    useState<ExerciseId>("back_lat_pulldown");
   const [sets, setSets] = useState<string>("3");
   const [reps, setReps] = useState<string>("10");
   const [entries, setEntries] = useState<TrainingEntry[]>([]);
@@ -93,11 +279,45 @@ export default function Home() {
   );
 
   const stats = useMemo(() => {
+    const now = new Date();
+
+    // 本周：当前日期往前推 7 天（滚动 7 天）
+    const weekCount = countByRange(entries, 7);
+
+    // 本月：当前自然月
+    const monthCount = entries.filter((e) => {
+      const d = new Date(e.createdAt);
+      return (
+        d.getFullYear() === now.getFullYear() &&
+        d.getMonth() === now.getMonth()
+      );
+    }).length;
+
+    // 本季度（当前 3 个月内）：从当前日期往前推 2 个月的同一天起算
+    const quarterStart = new Date(
+      now.getFullYear(),
+      now.getMonth() - 2,
+      now.getDate(),
+      0,
+      0,
+      0,
+      0
+    ).getTime();
+    const quarterCount = entries.filter(
+      (e) => e.createdAt >= quarterStart
+    ).length;
+
+    // 本年度：从今年 1 月 1 日到现在
+    const yearStart = new Date(now.getFullYear(), 0, 1).getTime();
+    const yearCount = entries.filter(
+      (e) => e.createdAt >= yearStart
+    ).length;
+
     return {
-      week: countByRange(entries, 7),
-      month: countByRange(entries, 30),
-      quarter: countByRange(entries, 90),
-      year: countByRange(entries, 365),
+      week: weekCount,
+      month: monthCount,
+      quarter: quarterCount,
+      year: yearCount,
     };
   }, [entries]);
 
@@ -111,6 +331,7 @@ export default function Home() {
     if (setsNum <= 0 || repsNum <= 0) return;
 
     const now = Date.now();
+    const exercise = selectedExercise;
     setEntries((prev) => [
       {
         id: `${now}-${prev.length}`,
@@ -118,6 +339,7 @@ export default function Home() {
         sets: setsNum,
         reps: repsNum,
         createdAt: now,
+        group: exercise.group,
       },
       ...prev,
     ]);
@@ -127,8 +349,7 @@ export default function Home() {
 
     setTimeout(() => {
       setIsSaving(false);
-    }, 450);
-
+    }, 350);
     setTimeout(() => {
       setJustSaved(false);
     }, 1400);
@@ -187,6 +408,45 @@ export default function Home() {
             </div>
 
             <form className="space-y-4" onSubmit={handleSave}>
+              {/* 训练部位选择 */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-800">
+                  本次训练部位
+                </label>
+                <div className="inline-flex rounded-full bg-slate-100 p-1 text-xs font-medium text-slate-500 shadow-inner">
+                  {[
+                    { key: "back", label: "背部" },
+                    { key: "shoulders", label: "肩部" },
+                    { key: "glutes_legs", label: "臀腿" },
+                  ].map((option) => {
+                    const active = selectedGroup === option.key;
+                    return (
+                      <button
+                        key={option.key}
+                        type="button"
+                        onClick={() => {
+                          setSelectedGroup(option.key as TrainingGroup);
+                          const firstInGroup = EXERCISES.find(
+                            (e) => e.group === option.key
+                          );
+                          if (firstInGroup) {
+                            setSelectedExerciseId(firstInGroup.id);
+                          }
+                        }}
+                        className={[
+                          "relative rounded-full px-3.5 py-1.5 transition-all",
+                          active
+                            ? "bg-white text-slate-900 shadow-sm"
+                            : "text-slate-500 hover:text-slate-800",
+                        ].join(" ")}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* 动作选择 */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -216,7 +476,9 @@ export default function Home() {
                     }
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 px-3.5 py-3 text-sm text-slate-900 shadow-inner outline-none ring-0 transition-all duration-200 placeholder:text-slate-400 focus:border-slate-900/70 focus:bg-white focus:shadow-[0_0_0_1px_rgba(15,23,42,0.06),0_12px_30px_rgba(15,23,42,0.12)]"
                   >
-                    {EXERCISES.map((exercise) => (
+                    {EXERCISES.filter(
+                      (exercise) => exercise.group === selectedGroup
+                    ).map((exercise) => (
                       <option key={exercise.id} value={exercise.id}>
                         {exercise.name}
                       </option>
@@ -307,7 +569,9 @@ export default function Home() {
                     disabled={isSaving}
                     className={[
                       "relative inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold text-white shadow-[0_18px_35px_rgba(15,23,42,0.35)] outline-none transition-all duration-400",
-                      "bg-gradient-to-tr from-slate-900 via-slate-900 to-slate-700",
+                      justSaved
+                        ? "bg-gradient-to-tr from-emerald-500 via-emerald-500 to-teal-400"
+                        : "bg-gradient-to-tr from-slate-900 via-slate-900 to-slate-700",
                       "hover:shadow-[0_20px_40px_rgba(15,23,42,0.40)] hover:-translate-y-[1px]",
                       "active:translate-y-0.5 active:scale-[0.98]",
                       isSaving ? "opacity-80" : "",
@@ -327,10 +591,17 @@ export default function Home() {
                       ) : (
                         <>
                           <span className="relative flex h-4 w-4 items-center justify-center">
-                            <span className="absolute inline-flex h-4 w-4 rounded-full bg-gradient-to-tr from-emerald-400 to-teal-400 opacity-90" />
+                            <span
+                              className={[
+                                "absolute inline-flex h-4 w-4 rounded-full",
+                                justSaved
+                                  ? "bg-gradient-to-tr from-emerald-200 to-emerald-400 animate-pulse"
+                                  : "bg-gradient-to-tr from-emerald-400 to-teal-400 opacity-90",
+                              ].join(" ")}
+                            />
                             <span className="relative h-1.5 w-1.5 rounded-full bg-white" />
                           </span>
-                          保存本次训练
+                          {justSaved ? "已保存" : "保存本次训练"}
                         </>
                       )}
                     </span>
@@ -374,15 +645,26 @@ export default function Home() {
                   const exercise = EXERCISES.find(
                     (e) => e.id === entry.exerciseId
                   )!;
+                  const groupLabel =
+                    entry.group === "back"
+                      ? "背部"
+                      : entry.group === "shoulders"
+                      ? "肩部"
+                      : "臀腿";
                   return (
                     <li
                       key={entry.id}
                       className="group flex items-center justify-between rounded-2xl bg-slate-50/70 px-3.5 py-2.5 text-sm text-slate-800 shadow-sm transition-all duration-200 hover:bg-white hover:shadow-[0_10px_30px_rgba(15,23,42,0.10)]"
                     >
                       <div className="flex flex-1 flex-col">
-                        <span className="font-medium tracking-tight text-slate-900">
-                          {exercise.name}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-full bg-slate-900/90 px-2 py-0.5 text-[10px] font-medium text-slate-50">
+                            {groupLabel}
+                          </span>
+                          <span className="font-medium tracking-tight text-slate-900">
+                            {exercise.name}
+                          </span>
+                        </div>
                         <span className="mt-0.5 text-[11px] text-slate-500">
                           {entry.sets} 组 × {entry.reps} 次
                         </span>
