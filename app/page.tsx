@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type TrainingGroup = "back" | "shoulders" | "glutes_legs";
 type ExerciseId = string;
@@ -221,11 +221,16 @@ const EXERCISES: Exercise[] = [
   },
 ];
 
+const STORAGE_KEY_ENTRIES = "fitness_journal_entries_v1";
+
 type TrainingEntry = {
   id: string;
-  exerciseId: ExerciseId;
-  sets: number;
-  reps: number;
+  exercises: {
+    id: string;
+    exerciseId: ExerciseId;
+    sets: number;
+    reps: number;
+  }[];
   createdAt: number;
   group: TrainingGroup;
 };
@@ -268,10 +273,41 @@ export default function Home() {
     useState<ExerciseId>("back_lat_pulldown");
   const [sets, setSets] = useState<string>("3");
   const [reps, setReps] = useState<string>("10");
+  const [currentExercises, setCurrentExercises] = useState<
+    TrainingEntry["exercises"]
+  >([]);
   const [entries, setEntries] = useState<TrainingEntry[]>([]);
   const [showExerciseModal, setShowExerciseModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+
+  // 从 localStorage 恢复历史记录
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY_ENTRIES);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as TrainingEntry[];
+      if (Array.isArray(parsed)) {
+        setEntries(parsed);
+      }
+    } catch {
+      // ignore parse error
+    }
+  }, []);
+
+  // 每次历史变化时写入 localStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        STORAGE_KEY_ENTRIES,
+        JSON.stringify(entries)
+      );
+    } catch {
+      // ignore write error
+    }
+  }, [entries]);
 
   const selectedExercise = useMemo(
     () => EXERCISES.find((e) => e.id === selectedExerciseId)!,
@@ -321,7 +357,7 @@ export default function Home() {
     };
   }, [entries]);
 
-  function handleSave(e: React.FormEvent) {
+  function handleAddExercise(e: React.FormEvent) {
     e.preventDefault();
     if (!sets || !reps) return;
 
@@ -332,17 +368,33 @@ export default function Home() {
 
     const now = Date.now();
     const exercise = selectedExercise;
-    setEntries((prev) => [
+    setCurrentExercises((prev) => [
+      ...prev,
       {
         id: `${now}-${prev.length}`,
         exerciseId: selectedExerciseId,
         sets: setsNum,
         reps: repsNum,
+      },
+    ]);
+  }
+
+  function handleSaveSession() {
+    if (currentExercises.length === 0) return;
+
+    const now = Date.now();
+
+    setEntries((prev) => [
+      {
+        id: `${now}-${prev.length}`,
+        exercises: currentExercises,
         createdAt: now,
-        group: exercise.group,
+        group: selectedGroup,
       },
       ...prev,
     ]);
+
+    setCurrentExercises([]);
 
     setIsSaving(true);
     setJustSaved(true);
@@ -407,7 +459,7 @@ export default function Home() {
               </div>
             </div>
 
-            <form className="space-y-4" onSubmit={handleSave}>
+            <form className="space-y-4" onSubmit={handleAddExercise}>
               {/* 训练部位选择 */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-800">
@@ -552,10 +604,64 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* 本次训练已添加的动作预览 */}
+              <div className="rounded-2xl bg-slate-50/70 px-3.5 py-3 text-xs text-slate-600 ring-1 ring-slate-100">
+                {currentExercises.length === 0 ? (
+                  <p>
+                    先选择动作与组数，点击下方
+                    <span className="font-semibold text-slate-900">
+                      「添加到本次训练」
+                    </span>
+                    ，本次训练可以包含多个动作。
+                  </p>
+                ) : (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium text-slate-900">
+                        本次已添加 {currentExercises.length} 个动作
+                      </p>
+                    </div>
+                    <ul className="space-y-1">
+                      {currentExercises.map((item) => {
+                        const meta = EXERCISES.find(
+                          (e) => e.id === item.exerciseId
+                        );
+                        return (
+                          <li
+                            key={item.id}
+                            className="flex items-center justify-between rounded-xl bg-white/70 px-2 py-1.5"
+                          >
+                            <div className="flex flex-col">
+                              <span className="text-[11px] font-medium text-slate-900">
+                                {meta?.name ?? "未命名动作"}
+                              </span>
+                              <span className="text-[11px] text-slate-500">
+                                {item.sets} 组 × {item.reps} 次
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCurrentExercises((prev) =>
+                                  prev.filter((x) => x.id !== item.id)
+                                )
+                              }
+                              className="text-[10px] text-slate-400 underline-offset-2 hover:text-slate-700 hover:underline"
+                            >
+                              移除
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
               {/* 底部操作区 */}
               <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-[11px] text-slate-400 sm:text-xs">
-                  小提示：长期记录更容易看见趋势，而不是单次状态。
+                  小提示：先把本次训练的所有动作添加进来，再点击右侧按钮整体保存为一次训练。
                 </p>
                 <div className="inline-flex items-center gap-2">
                   {justSaved && (
@@ -565,8 +671,16 @@ export default function Home() {
                     </div>
                   )}
                   <button
-                    type="submit"
-                    disabled={isSaving}
+                    type="button"
+                    onClick={handleAddExercise}
+                    className="hidden items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 sm:inline-flex"
+                  >
+                    添加到本次训练
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSaving || currentExercises.length === 0}
+                    onClick={handleSaveSession}
                     className={[
                       "relative inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold text-white shadow-[0_18px_35px_rgba(15,23,42,0.35)] outline-none transition-all duration-400",
                       justSaved
@@ -624,7 +738,7 @@ export default function Home() {
               </div>
               {entries.length > 0 && (
                 <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-500">
-                  共 {entries.length} 次记录
+                  共 {entries.length} 次训练
                 </span>
               )}
             </div>
@@ -642,15 +756,25 @@ export default function Home() {
             ) : (
               <ul className="space-y-2.5">
                 {entries.map((entry) => {
-                  const exercise = EXERCISES.find(
-                    (e) => e.id === entry.exerciseId
-                  )!;
                   const groupLabel =
                     entry.group === "back"
                       ? "背部"
                       : entry.group === "shoulders"
                       ? "肩部"
                       : "臀腿";
+                  const summaryParts = entry.exercises.map((ex) => {
+                    const meta = EXERCISES.find(
+                      (e) => e.id === ex.exerciseId
+                    );
+                    const name = meta?.name ?? "未命名动作";
+                    return `${name}（${ex.sets}×${ex.reps}）`;
+                  });
+                  const summaryText =
+                    summaryParts.length <= 2
+                      ? summaryParts.join("，")
+                      : `${summaryParts.slice(0, 2).join("，")} 等 ${
+                          summaryParts.length
+                        } 个动作`;
                   return (
                     <li
                       key={entry.id}
@@ -662,11 +786,11 @@ export default function Home() {
                             {groupLabel}
                           </span>
                           <span className="font-medium tracking-tight text-slate-900">
-                            {exercise.name}
+                            本次训练 · {entry.exercises.length} 个动作
                           </span>
                         </div>
                         <span className="mt-0.5 text-[11px] text-slate-500">
-                          {entry.sets} 组 × {entry.reps} 次
+                          {summaryText}
                         </span>
                       </div>
                       <div className="flex flex-col items-end gap-1">
@@ -676,12 +800,15 @@ export default function Home() {
                         <button
                           type="button"
                           onClick={() => {
-                            setSelectedExerciseId(entry.exerciseId);
-                            setShowExerciseModal(true);
+                            const first = entry.exercises[0];
+                            if (first) {
+                              setSelectedExerciseId(first.exerciseId);
+                              setShowExerciseModal(true);
+                            }
                           }}
                           className="text-[10px] font-medium text-slate-400 underline-offset-2 transition-colors hover:text-slate-700 hover:underline"
                         >
-                          查看肌肉群
+                          查看动作肌肉群
                         </button>
                       </div>
                     </li>
